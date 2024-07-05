@@ -1,0 +1,108 @@
+# name: deploy-web
+
+# on: [push]
+
+# jobs:
+#   setup:
+#     runs-on: self-hosted
+
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v2
+
+#     - name: Check Current Directory
+#       run: pwd
+
+#     - name: Check current Docker status
+#       run: sudo docker ps
+
+#     - name: Stop Docker Container
+#       run: sudo docker stop csn-nginx || true
+
+#     - name: Delete the Docker Container
+#       run: sudo docker rm csn-nginx || true
+
+#     - name: Build Nginx Docker Image
+#       run: sudo docker build -t csn-nginx .
+
+#     - name: Run the Docker Container
+#       run: sudo docker run -d --name csn-nginx -p 8080:80 csn-nginx
+
+#     - name: Wait for the container to be ready
+#       run: sleep 10
+
+#     - name: Check Docker Container Logs
+#       run: sudo docker logs csn-nginx
+
+#     - name: Test the server from within the container
+#       run: sudo docker exec csn-nginx curl -I http://localhost
+
+#     - name: Test the server from the host
+#       run: curl -I http://localhost:8080
+#       # run: curl http://localhost:8080
+
+name: deploy-web
+
+on: [push]
+
+jobs:
+  setup:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Check Current Directory
+      run: pwd
+
+    - name: Check current Docker status
+      run: sudo docker ps
+
+    - name: Stop Docker Container
+      run: sudo docker stop csn-nginx || true
+
+    - name: Delete the Docker Container
+      run: sudo docker rm csn-nginx || true
+
+    - name: Build Nginx Docker Image
+      run: sudo docker build -t csn-nginx .
+
+    - name: Run the Docker Container
+      run: sudo docker run -d --name csn-nginx -p 8080:80 csn-nginx
+
+    - name: Wait for the container to be ready
+      run: sleep 10
+
+    - name: Check Docker Container Logs
+      run: sudo docker logs csn-nginx
+
+    - name: Test the server from within the container
+      run: sudo docker exec csn-nginx curl -I http://localhost
+
+    - name: Test the server from the host
+      run: curl -I http://localhost:8080
+
+    - name: Install JDK 11
+      run: sudo apt-get install openjdk-11-jdk -y
+
+    - name: Install SonarQube Scanner
+      run: |
+        sudo apt-get update
+        sudo apt-get install wget unzip -y
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+        unzip sonar-scanner-cli-4.6.2.2472-linux.zip
+        sudo mv sonar-scanner-4.6.2.2472-linux /opt/sonar-scanner
+        export PATH=$PATH:/opt/sonar-scanner/bin
+
+    - name: Run SonarQube Scan
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      run: |
+        /opt/sonar-scanner/bin/sonar-scanner \
+          -Dsonar.projectKey=your_project_key \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
